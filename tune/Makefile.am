@@ -1,4 +1,4 @@
-# Copyright 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
+# Copyright 2010-2020 Free Software Foundation, Inc.
 # This Makefile.am is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -8,6 +8,12 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
+
+# Since we do not require GNU "make", let's select the POSIX behavior to
+# uniformize the behavior a bit more with various "make" implementations
+# and ease maintenance. This target should be removed only if one day,
+# we need to require GNU "make".
+.POSIX:
 
 EXTRA_PROGRAMS = tuneup speed bidimensional_sample
 
@@ -23,7 +29,7 @@ bidimensional_sample_SOURCES = bidimensional_sample.c
 bidimensional_sample_LDADD = -lspeed $(top_builddir)/src/libmpfr.la $(TUNE_LIBS)
 bidimensional_sample_LDFLAGS = -static
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir)/src
 
 tune:
 	$(MAKE) $(AM_MAKEFLAGS) tuneup$(EXEEXT)

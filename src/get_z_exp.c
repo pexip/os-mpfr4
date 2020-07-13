@@ -1,8 +1,8 @@
 /* mpfr_get_z_2exp -- get a multiple-precision integer and an exponent
                       from a floating-point number
 
-Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Copyright 2000-2020 Free Software Foundation, Inc.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -18,7 +18,7 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "mpfr-impl.h"
@@ -39,6 +39,15 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  * for consistency. The erange flag is set.
  */
 
+/* MPFR_LARGE_EXP can be defined when mpfr_exp_t is guaranteed to have
+   at least 64 bits (in a portable way). */
+#if GMP_NUMB_BITS >= 64
+/* Now, we know that the constant below is supported by the compiler. */
+# if _MPFR_EXP_FORMAT >= 3 && LONG_MAX >= 9223372036854775807
+#  define MPFR_LARGE_EXP 1
+# endif
+#endif
+
 mpfr_exp_t
 mpfr_get_z_2exp (mpz_ptr z, mpfr_srcptr f)
 {
@@ -48,16 +57,19 @@ mpfr_get_z_2exp (mpz_ptr z, mpfr_srcptr f)
   if (MPFR_UNLIKELY (MPFR_IS_SINGULAR (f)))
     {
       if (MPFR_UNLIKELY (MPFR_NOTZERO (f)))
-        MPFR_SET_ERANGE ();
+        MPFR_SET_ERANGEFLAG ();
       mpz_set_ui (z, 0);
       return __gmpfr_emin;
     }
 
   fn = MPFR_LIMB_SIZE(f);
 
+  /* FIXME: temporary assert for security. Too large values should
+     probably be handled like infinities. */
+  MPFR_ASSERTN (fn <= INT_MAX);  /* due to SIZ(z) being an int */
+
   /* check whether allocated space for z is enough */
-  if (MPFR_UNLIKELY (ALLOC (z) < fn))
-    MPZ_REALLOC (z, fn);
+  mpz_realloc2 (z, (mp_bitcnt_t) fn * GMP_NUMB_BITS);
 
   MPFR_UNSIGNED_MINUS_MODULO (sh, MPFR_PREC (f));
   if (MPFR_LIKELY (sh))
@@ -67,13 +79,18 @@ mpfr_get_z_2exp (mpz_ptr z, mpfr_srcptr f)
 
   SIZ(z) = MPFR_IS_NEG (f) ? -fn : fn;
 
+#ifndef MPFR_LARGE_EXP
+  /* If mpfr_exp_t has 64 bits, then MPFR_GET_EXP(f) >= MPFR_EMIN_MIN = 1-2^62
+     and MPFR_EXP_MIN <= 1-2^63, thus the following implies PREC(f) > 2^62,
+     which is impossible due to memory constraints. */
   if (MPFR_UNLIKELY ((mpfr_uexp_t) MPFR_GET_EXP (f) - MPFR_EXP_MIN
                      < (mpfr_uexp_t) MPFR_PREC (f)))
     {
       /* The exponent isn't representable in an mpfr_exp_t. */
-      MPFR_SET_ERANGE ();
+      MPFR_SET_ERANGEFLAG ();
       return MPFR_EXP_MIN;
     }
+#endif
 
   return MPFR_GET_EXP (f) - MPFR_PREC (f);
 }

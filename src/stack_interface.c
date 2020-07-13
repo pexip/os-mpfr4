@@ -1,7 +1,7 @@
 /* mpfr_stack -- initialize a floating-point number with given allocation area
 
-Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Copyright 2005-2020 Free Software Foundation, Inc.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -17,7 +17,7 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "mpfr-impl.h"
@@ -26,7 +26,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 size_t
 mpfr_custom_get_size (mpfr_prec_t prec)
 {
-  return MPFR_PREC2LIMBS (prec) * BYTES_PER_MP_LIMB;
+  return MPFR_PREC2LIMBS (prec) * MPFR_BYTES_PER_MP_LIMB;
 }
 
 #undef mpfr_custom_init
