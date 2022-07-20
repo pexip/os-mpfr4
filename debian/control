@@ -3,10 +3,12 @@ Section: math
 Priority: optional
 Build-Depends: debhelper (>= 10), libgmp-dev, autoconf-archive, texinfo
 Build-Depends-Indep: texlive-latex-base
-Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.org>
-Uploaders: Matthias Klose <doko@debian.org>
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.org>
+XSBC-Pexip-Original-Uploaders: Matthias Klose <doko@debian.org>
 Homepage: https://www.mpfr.org/
 Standards-Version: 4.5.0
+XS-Pexip-Upstream: http://deb.debian.org/debian/ bullseye
 
 Package: libmpfr6
 Section: libs
