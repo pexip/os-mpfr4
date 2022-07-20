@@ -10,7 +10,7 @@ Homepage: http://www.mpfr.org/
 Vcs-Git: git://git.debian.org/collab-maint/mpfr.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/mpfr.git
 Standards-Version: 3.9.6
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ jessie
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ bullseye
 
 Package: libmpfr4
 Section: libs
