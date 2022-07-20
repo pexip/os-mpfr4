@@ -1,8 +1,8 @@
 /* tsprintf.c -- test file for mpfr_sprintf, mpfr_vsprintf, mpfr_snprintf,
    and mpfr_vsnprintf
 
-Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Copyright 2007-2020 Free Software Foundation, Inc.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -18,22 +18,25 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-#ifdef HAVE_STDARG
+/* Needed due to the tests on HAVE_STDARG and MPFR_USE_MINI_GMP */
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#if defined(HAVE_STDARG) && !defined(MPFR_USE_MINI_GMP)
 #include <stdarg.h>
 
-#include <stdlib.h>
 #include <float.h>
+#include <errno.h>
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
 
 #include "mpfr-test.h"
-
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,4,0)
 
 const int prec_max_printf = 5000; /* limit for random precision in
                                      random_double() */
@@ -46,13 +49,15 @@ const char minf_uc_str[] = "-INF";
 const char nan_str[] = "nan";
 const char nan_uc_str[] = "NAN";
 
+int randsize;
+
 /* 1. compare expected string with the string BUFFER returned by
    mpfr_sprintf(buffer, fmt, x)
    2. then test mpfr_snprintf (buffer, p, fmt, x) with a random p. */
 static int
 check_sprintf (const char *expected, const char *fmt, mpfr_srcptr x)
 {
-  int n0, n1, p;
+  int n0, n1;
   char buffer[BUF_SIZE];
 
   /* test mpfr_sprintf */
@@ -66,35 +71,39 @@ check_sprintf (const char *expected, const char *fmt, mpfr_srcptr x)
     }
 
   /* test mpfr_snprintf */
-  p = (int) (randlimb () % n0);
-  if (p == 0 && (randlimb () & 1) == 0)
+  randsize = (int) (randlimb () % (n0 + 3)) - 3;  /* between -3 and n0 - 1 */
+  if (randsize < 0)
     {
       n1 = mpfr_snprintf (NULL, 0, fmt, x);
     }
   else
     {
-      buffer[p] = 17;
-      n1 = mpfr_snprintf (buffer, p, fmt, x);
-      if (buffer[p] != 17)
+      buffer[randsize] = 17;
+      n1 = mpfr_snprintf (buffer, randsize, fmt, x);
+      if (buffer[randsize] != 17)
         {
-          printf ("Buffer overflow in mpfr_snprintf for p = %d!\n", p);
+          printf ("Buffer overflow in mpfr_snprintf for randsize = %d!\n",
+                  randsize);
           exit (1);
         }
     }
   if (n0 != n1)
     {
       printf ("Error in mpfr_snprintf (s, %d, \"%s\", x) return value\n",
-              p, fmt);
-      printf ("expected: %d\ngot:      %d\n", n0, n1);
+              randsize, fmt);
+      printf ("expected: %d\ngot:      %d\nx='", n0, n1);
+      mpfr_printf (fmt, x);
+      printf ("'\n");
       exit (1);
     }
-  if ((p > 1 && strncmp (expected, buffer, p-1) != 0)
-      || (p == 1 && buffer[0] != '\0'))
+  if ((randsize > 1 && strncmp (expected, buffer, randsize - 1) != 0)
+      || (randsize == 1 && buffer[0] != '\0'))
     {
       char part_expected[BUF_SIZE];
-      strncpy (part_expected, expected, p);
-      part_expected[p-1] = '\0';
-      printf ("Error in mpfr_vsnprintf (s, %d, \"%s\", ...);\n", p, fmt);
+      strncpy (part_expected, expected, randsize);
+      part_expected[randsize - 1] = '\0';
+      printf ("Error in mpfr_vsnprintf (s, %d, \"%s\", ...);\n",
+              randsize, fmt);
       printf ("expected: \"%s\"\ngot:      \"%s\"\n", part_expected, buffer);
       exit (1);
     }
@@ -107,63 +116,63 @@ check_sprintf (const char *expected, const char *fmt, mpfr_srcptr x)
 static int
 check_vsprintf (const char *expected, const char *fmt, ...)
 {
-  int n0, n1, p;
+  int n0, n1;
   char buffer[BUF_SIZE];
   va_list ap0, ap1;
-  va_start (ap0, fmt);
-  va_start (ap1, fmt);
 
+  va_start (ap0, fmt);
   n0 = mpfr_vsprintf (buffer, fmt, ap0);
+  va_end (ap0);
+
   if (strcmp (buffer, expected) != 0)
     {
       printf ("Error in mpfr_vsprintf (s, \"%s\", ...);\n", fmt);
       printf ("expected: \"%s\"\ngot:      \"%s\"\n", expected, buffer);
-
-      va_end (ap0);
-      va_end (ap1);
       exit (1);
     }
-  va_end (ap0);
+
+  va_start (ap1, fmt);
 
   /* test mpfr_snprintf */
-  p = (int) (randlimb () % n0);
-  if (p == 0 && (randlimb () & 1) == 0)
+  randsize = (int) (randlimb () % (n0 + 3)) - 3;  /* between -3 and n0 - 1 */
+  if (randsize < 0)
     {
       n1 = mpfr_vsnprintf (NULL, 0, fmt, ap1);
     }
   else
     {
-      buffer[p] = 17;
-      n1 = mpfr_vsnprintf (buffer, p, fmt, ap1);
-      if (buffer[p] != 17)
+      buffer[randsize] = 17;
+      n1 = mpfr_vsnprintf (buffer, randsize, fmt, ap1);
+      if (buffer[randsize] != 17)
         {
-          printf ("Buffer overflow in mpfr_vsnprintf for p = %d!\n", p);
+          printf ("Buffer overflow in mpfr_vsnprintf for randsize = %d!\n",
+                  randsize);
           exit (1);
         }
     }
+
+  va_end (ap1);
+
   if (n0 != n1)
     {
       printf ("Error in mpfr_vsnprintf (s, %d, \"%s\", ...) return value\n",
-              p, fmt);
+              randsize, fmt);
       printf ("expected: %d\ngot:      %d\n", n0, n1);
-
-      va_end (ap1);
       exit (1);
     }
-  if ((p > 1 && strncmp (expected, buffer, p-1) != 0)
-      || (p == 1 && buffer[0] != '\0'))
+  if ((randsize > 1 && strncmp (expected, buffer, randsize - 1) != 0)
+      || (randsize == 1 && buffer[0] != '\0'))
     {
       char part_expected[BUF_SIZE];
-      strncpy (part_expected, expected, p);
-      part_expected[p-1] = '\0';
-      printf ("Error in mpfr_vsnprintf (s, %d, \"%s\", ...);\n", p, fmt);
-      printf ("expected: \"%s\"\ngot:      \"%s\"\n", part_expected, buffer);
 
-      va_end (ap1);
+      strncpy (part_expected, expected, randsize);
+      part_expected[randsize - 1] = '\0';
+      printf ("Error in mpfr_vsnprintf (s, %d, \"%s\", ...);\n",
+              randsize, fmt);
+      printf ("expected: \"%s\"\ngot:      \"%s\"\n", part_expected, buffer);
       exit (1);
     }
 
-  va_end (ap1);
   return n0;
 }
 
@@ -216,14 +225,30 @@ static int
 decimal (void)
 {
   mpfr_prec_t p = 128;
-  mpfr_t x;
-  mpfr_t z;
+  mpfr_t x, y, z;
+
   mpfr_init (z);
   mpfr_init2 (x, p);
 
   /* specifier 'P' for precision */
   check_vsprintf ("128", "%Pu", p);
   check_vsprintf ("00128", "%.5Pu", p);
+  check_vsprintf ("  128", "%5Pu", p);
+  check_vsprintf ("000128", "%06Pu", p);
+  check_vsprintf ("128    :", "%-7Pu:", p);
+  check_vsprintf ("000128:", "%-2.6Pd:", p);
+  check_vsprintf ("  000128:", "%8.6Pd:", p);
+  check_vsprintf ("000128  :", "%-8.6Pd:", p);
+  check_vsprintf ("+128:", "%+Pd:", p);
+  check_vsprintf (" 128:", "% Pd:", p);
+  check_vsprintf ("80:", "% Px:", p);
+  check_vsprintf ("0x80:", "% #Px:", p);
+  check_vsprintf ("0x80:", "%0#+ -Px:", p);
+  check_vsprintf ("0200:", "%0#+ -Po:", p);
+  check_vsprintf ("+0000128 :", "%0+ *.*Pd:", -9, 7, p);
+  check_vsprintf ("+12345   :", "%0+ -*.*Pd:", -9, -3, (mpfr_prec_t) 12345);
+  /* Do not add a test like "%05.1Pd" as MS Windows is buggy: when
+     a precision is given, the '0' flag must be ignored. */
 
   /* special numbers */
   mpfr_set_inf (x, 1);
@@ -275,29 +300,38 @@ decimal (void)
 
   /* positive numbers */
   mpfr_set_str (x, "18993474.61279296875", 10, MPFR_RNDN);
+  mpfr_init2 (y, 59);
+  mpfr_set (y, x, MPFR_RNDN);
   mpfr_set_ui (z, 0, MPFR_RNDD);
 
   /* simplest case right justified */
-  check_sprintf ("      1.899347461279296875e+07", "%30Re", x);
+  check_sprintf ("1.899347461279296875000000000000000000000e+07", "%30Re", x);
+  check_sprintf ("      1.899347461279296875e+07", "%30Re", y);
   check_sprintf ("                         2e+07", "%30.0Re", x);
   check_sprintf ("               18993474.612793", "%30Rf", x);
   check_sprintf ("              18993474.6127930", "%30.7Rf", x);
   check_sprintf ("                   1.89935e+07", "%30Rg", x);
   check_sprintf ("                         2e+07", "%30.0Rg", x);
   check_sprintf ("          18993474.61279296875", "%30.19Rg", x);
+  check_sprintf ("        0.0000000000000000e+00", "%30Re", z);
+  check_sprintf ("                      0.000000", "%30Rf", z);
+  check_sprintf ("                             0", "%30Rg", z);
+  check_sprintf ("                       0.00000", "%#30Rg", z);
   check_sprintf ("                         0e+00", "%30.0Re", z);
   check_sprintf ("                             0", "%30.0Rf", z);
   check_sprintf ("                        0.0000", "%30.4Rf", z);
   check_sprintf ("                             0", "%30.0Rg", z);
   check_sprintf ("                             0", "%30.4Rg", z);
   /* sign or space, pad with leading zeros */
-  check_sprintf (" 000001.899347461279296875E+07", "% 030RE", x);
+  check_sprintf (" 1.899347461279296875000000000000000000000E+07", "% 030RE", x);
+  check_sprintf (" 000001.899347461279296875E+07", "% 030RE", y);
   check_sprintf (" 0000000000000000001.89935E+07", "% 030RG", x);
   check_sprintf (" 0000000000000000000000002E+07", "% 030.0RE", x);
   check_sprintf (" 0000000000000000000000000E+00", "% 030.0RE", z);
   check_sprintf (" 00000000000000000000000000000", "% 030.0RF", z);
   /* sign + or -, left justified */
-  check_sprintf ("+1.899347461279296875e+07     ", "%+-30Re", x);
+  check_sprintf ("+1.899347461279296875000000000000000000000e+07", "%+-30Re", x);
+  check_sprintf ("+1.899347461279296875e+07     ", "%+-30Re", y);
   check_sprintf ("+2e+07                        ", "%+-30.0Re", x);
   check_sprintf ("+0e+00                        ", "%+-30.0Re", z);
   check_sprintf ("+0                            ", "%+-30.0Rf", z);
@@ -317,11 +351,14 @@ decimal (void)
   check_sprintf ("+0000.0E+00", "%0+#11.1RZE", z);
   check_sprintf ("+00000000.0", "%0+#11.1RZF", z);
   /* pad with leading zero */
-  check_sprintf ("0000001.899347461279296875e+07", "%030RDe", x);
+  check_sprintf ("1.899347461279296875000000000000000000000e+07", "%030RDe", x);
+  check_sprintf ("0000001.899347461279296875e+07", "%030RDe", y);
   check_sprintf ("00000000000000000000000001e+07", "%030.0RDe", x);
   /* sign or space, decimal point, left justified */
   check_sprintf (" 1.8E+07   ", "%- #11.1RDE", x);
   check_sprintf (" 1.E+07    ", "%- #11.0RDE", x);
+  /* large requested precision */
+  check_sprintf ("18993474.61279296875", "%.2147483647Rg", x);
 
   /* negative numbers */
   mpfr_mul_si (x, x, -1, MPFR_RNDD);
@@ -336,8 +373,12 @@ decimal (void)
 
   /* neighborhood of 1 */
   mpfr_set_str (x, "0.99993896484375", 10, MPFR_RNDN);
-  check_sprintf ("9.9993896484375E-01 ", "%-20RE", x);
-  check_sprintf ("9.9993896484375E-01 ", "%-20.RE", x);
+  mpfr_set_prec (y, 43);
+  mpfr_set (y, x, MPFR_RNDN);
+  check_sprintf ("9.999389648437500000000000000000000000000E-01", "%-20RE", x);
+  check_sprintf ("9.999389648437500000000000000000000000000E-01", "%-20.RE", x);
+  check_sprintf ("9.9993896484375E-01 ", "%-20RE", y);
+  check_sprintf ("9.9993896484375E-01 ", "%-20.RE", y);
   check_sprintf ("1E+00               ", "%-20.0RE", x);
   check_sprintf ("1.0E+00             ", "%-20.1RE", x);
   check_sprintf ("1.00E+00            ", "%-20.2RE", x);
@@ -370,9 +411,9 @@ decimal (void)
   check_sprintf ("1.00                ", "%-#20.3RG", x);
   check_sprintf ("0.9999              ", "%-#20.4RG", x);
 
-  /* multiple of 10 */
+  /* powers of 10 */
   mpfr_set_str (x, "1e17", 10, MPFR_RNDN);
-  check_sprintf ("1e+17", "%Re", x);
+  check_sprintf ("1.000000000000000000000000000000000000000e+17", "%Re", x);
   check_sprintf ("1.000e+17", "%.3Re", x);
   check_sprintf ("100000000000000000", "%.0Rf", x);
   check_sprintf ("100000000000000000.0", "%.1Rf", x);
@@ -380,7 +421,7 @@ decimal (void)
   check_sprintf ("100000000000000000.0", "%'.1Rf", x);
 
   mpfr_ui_div (x, 1, x, MPFR_RNDN); /* x=1e-17 */
-  check_sprintf ("1e-17", "%Re", x);
+  check_sprintf ("1.000000000000000000000000000000000000000e-17", "%Re", x);
   check_sprintf ("0.000000", "%Rf", x);
   check_sprintf ("1e-17", "%Rg", x);
   check_sprintf ("0.0", "%.1RDf", x);
@@ -392,7 +433,7 @@ decimal (void)
   check_sprintf ("1", "%.0RUf", x);
   check_sprintf ("1", "%.0RYf", x);
 
-  /* multiple of 10 with 'g' style */
+  /* powers of 10 with 'g' style */
   mpfr_set_str (x, "10", 10, MPFR_RNDN);
   check_sprintf ("10", "%Rg", x);
   check_sprintf ("1e+01", "%.0Rg", x);
@@ -409,6 +450,12 @@ decimal (void)
   check_sprintf ("1e+03", "%.0Rg", x);
   check_sprintf ("1e+03", "%.3Rg", x);
   check_sprintf ("1000", "%.4Rg", x);
+  check_sprintf ("1e+03", "%.3Rg", x);
+  check_sprintf ("1000", "%.4Rg", x);
+  check_sprintf ("    1e+03", "%9.3Rg", x);
+  check_sprintf ("     1000", "%9.4Rg", x);
+  check_sprintf ("00001e+03", "%09.3Rg", x);
+  check_sprintf ("000001000", "%09.4Rg", x);
 
   mpfr_ui_div (x, 1, x, MPFR_RNDN);
   check_sprintf ("0.001", "%Rg", x);
@@ -420,6 +467,10 @@ decimal (void)
   check_sprintf ("1e+05", "%.0Rg", x);
   check_sprintf ("1e+05", "%.5Rg", x);
   check_sprintf ("100000", "%.6Rg", x);
+  check_sprintf ("            1e+05", "%17.5Rg", x);
+  check_sprintf ("           100000", "%17.6Rg", x);
+  check_sprintf ("0000000000001e+05", "%017.5Rg", x);
+  check_sprintf ("00000000000100000", "%017.6Rg", x);
 
   mpfr_ui_div (x, 1, x, MPFR_RNDN);
   check_sprintf ("1e-05", "%Rg", x);
@@ -456,10 +507,16 @@ decimal (void)
   check_sprintf ("1.999900  ", "%-#10.7RG", x);
   check_sprintf ("1.9999    ", "%-10.7RG", x);
   mpfr_set_ui (x, 1, MPFR_RNDN);
+  check_sprintf ("1.", "%#.1Rg", x);
+  check_sprintf ("1.   ", "%-#5.1Rg", x);
+  check_sprintf ("  1.0", "%#5.2Rg", x);
   check_sprintf ("1.00000000000000000000000000000", "%#.30Rg", x);
   check_sprintf ("1", "%.30Rg", x);
   mpfr_set_ui (x, 0, MPFR_RNDN);
-  check_sprintf ("0.000000000000000000000000000000", "%#.30Rg", x);
+  check_sprintf ("0.", "%#.1Rg", x);
+  check_sprintf ("0.   ", "%-#5.1Rg", x);
+  check_sprintf ("  0.0", "%#5.2Rg", x);
+  check_sprintf ("0.00000000000000000000000000000", "%#.30Rg", x);
   check_sprintf ("0", "%.30Rg", x);
 
   /* following tests with precision 53 bits */
@@ -549,7 +606,10 @@ decimal (void)
   mpfr_set_str (x, "-9.996", 10, MPFR_RNDN);
   check_sprintf ("-10.0", "%.1Rf", x);
 
-  mpfr_clears (x, z, (mpfr_ptr) 0);
+  /* regression in MPFR 3.1.0 (bug introduced in r7761, fixed in r7931) */
+  check_sprintf ("-10", "%.2Rg", x);
+
+  mpfr_clears (x, y, z, (mpfr_ptr) 0);
   return 0;
 }
 
@@ -595,6 +655,8 @@ hexadecimal (void)
   check_sprintf ("   0xf.edcba987654321p+24", "%25RNa", x);
   check_sprintf ("                  0x1p+28", "%25.0Ra", x);
   check_sprintf ("                   0x0p+0", "%25.0Ra", z);
+  check_sprintf ("                   0x0p+0", "%25Ra", z);
+  check_sprintf ("                  0x0.p+0", "%#25Ra", z);
   /* sign or space, pad with leading zeros */
   check_sprintf (" 0X00F.EDCBA987654321P+24", "% 025RA", x);
   check_sprintf (" 0X000000000000000001P+28", "% 025.0RA", x);
@@ -720,6 +782,7 @@ binary (void)
   /* simplest case: right justified */
   check_sprintf ("    1.1100101011001101p+9", "%25Rb", x);
   check_sprintf ("                     0p+0", "%25Rb", z);
+  check_sprintf ("                    0.p+0", "%#25Rb", z);
   /* sign or space, pad with leading zeros */
   check_sprintf (" 0001.1100101011001101p+9", "% 025Rb", x);
   check_sprintf (" 000000000000000000000p+0", "% 025Rb", z);
@@ -781,7 +844,7 @@ mixed (void)
   int n1;
   int n2;
   int i = 121;
-#ifndef NPRINTF_L
+#ifdef PRINTF_L
   long double d = 1. / 31.;
 #endif
   mpf_t mpf;
@@ -789,6 +852,7 @@ mixed (void)
   mpz_t mpz;
   mpfr_t x;
   mpfr_rnd_t rnd;
+  int k;
 
   mpf_init (mpf);
   mpf_set_ui (mpf, 40);
@@ -802,26 +866,47 @@ mixed (void)
   rnd = MPFR_RNDD;
 
   check_vsprintf ("121%", "%i%%", i);
-  check_vsprintf ("121% -1.2345678875E+07", "%i%% %RNE", i, x);
+  check_vsprintf ("121% -1.2345678875000000E+07", "%i%% %RNE", i, x);
   check_vsprintf ("121, -12345679", "%i, %.0Rf", i, x);
-  check_vsprintf ("10610209857723, -1.2345678875e+07", "%Zi, %R*e", mpz, rnd,
+  check_vsprintf ("10610209857723, -1.2345678875000000e+07", "%Zi, %R*e", mpz, rnd,
                   x);
   check_vsprintf ("-12345678.9, 121", "%.1Rf, %i", x, i);
   check_vsprintf ("-12345678, 1e240/45b352", "%.0R*f, %Qx", MPFR_RNDZ, x, mpq);
-  n1 = check_vsprintf ("121, -12345678.875000000000, 1.290323", "%i, %.*Rf, %Ff%n",
-                       i, 12, x, mpf, &n2);
-  if (n1 != n2)
+
+  /* TODO: Systematically test with and without %n in check_vsprintf? */
+  /* Do the test several times due to random parameters in check_vsprintf
+     and the use of %n. In r11501, n2 is incorrect (seems random) when
+     randsize <= 0, i.e. when the size argument of mpfr_vsnprintf is 0. */
+  for (k = 0; k < 30; k++)
     {
-      printf ("error in number of characters written by mpfr_vsprintf\n");
-      printf ("expected: %d\n", n2);
-      printf ("     got: %d\n", n1);
-      exit (1);
+      n2 = -17;
+      /* If this value is obtained for n2 after the check_vsprintf call below,
+         this probably means that n2 has not been written as expected. */
+      n1 = check_vsprintf ("121, -12345678.875000000000, 1.290323",
+                           "%i, %.*Rf, %Ff%n", i, 12, x, mpf, &n2);
+      if (n1 != n2)
+        {
+          printf ("error in number of characters written by mpfr_vsprintf"
+                  " for k = %d, randsize = %d\n", k, randsize);
+          printf ("expected: %d\n", n2);
+          printf ("     got: %d\n", n1);
+          exit (1);
+        }
     }
 
-#ifndef NPRINTF_L
-  check_vsprintf ("00000010610209857723, -1.2345678875e+07, 0.032258",
+#ifdef PRINTF_L
+  /* under MinGW, -D__USE_MINGW_ANSI_STDIO is required to support %Lf
+     see https://gcc.gnu.org/legacy-ml/gcc/2013-03/msg00103.html */
+  check_vsprintf ("00000010610209857723, -1.2345678875000000e+07, 0.032258",
                   "%.*Zi, %R*e, %Lf", 20, mpz, rnd, x, d);
 #endif
+
+  /* check invalid spec.spec */
+  check_vsprintf ("%,", "%,");
+  check_vsprintf ("%3*Rg", "%3*Rg");
+
+  /* check empty format */
+  check_vsprintf ("%", "%");
 
   mpf_clear (mpf);
   mpq_clear (mpq);
@@ -830,51 +915,78 @@ mixed (void)
   return 0;
 }
 
+#if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE) && MPFR_LCONV_DPTS
+
 /* Check with locale "da_DK". On most platforms, decimal point is ','
    and thousands separator is '.'; the test is not performed if this
    is not the case or if the locale doesn't exist. */
-static int
+static void
 locale_da_DK (void)
 {
   mpfr_prec_t p = 128;
-  mpfr_t x;
+  mpfr_t x, y;
 
   if (setlocale (LC_ALL, "da_DK") == 0 ||
       localeconv()->decimal_point[0] != ',' ||
       localeconv()->thousands_sep[0] != '.')
-    return 0;
+    {
+      setlocale (LC_ALL, "C");
+
+      if (getenv ("MPFR_CHECK_LOCALES") == NULL)
+        return;
+
+      fprintf (stderr,
+               "Cannot test the da_DK locale (not found or inconsistent).\n");
+      exit (1);
+    }
 
   mpfr_init2 (x, p);
 
   /* positive numbers */
   mpfr_set_str (x, "18993474.61279296875", 10, MPFR_RNDN);
+  mpfr_init2 (y, 59);
+  mpfr_set (y, x, MPFR_RNDN);
 
   /* simplest case right justified with thousands separator */
-  check_sprintf ("      1,899347461279296875e+07", "%'30Re", x);
+  check_sprintf ("1,899347461279296875000000000000000000000e+07", "%'30Re", x);
+  check_sprintf ("      1,899347461279296875e+07", "%'30Re", y);
   check_sprintf ("                   1,89935e+07", "%'30Rg", x);
   check_sprintf ("        18.993.474,61279296875", "%'30.19Rg", x);
   check_sprintf ("             18.993.474,612793", "%'30Rf", x);
 
   /* sign or space, pad, thousands separator with leading zeros */
-  check_sprintf (" 000001,899347461279296875E+07", "%' 030RE", x);
+  check_sprintf (" 1,899347461279296875000000000000000000000E+07", "%' 030RE", x);
+  check_sprintf (" 000001,899347461279296875E+07", "%' 030RE", y);
   check_sprintf (" 0000000000000000001,89935E+07", "%' 030RG", x);
   check_sprintf (" 000000018.993.474,61279296875", "%' 030.19RG", x);
   check_sprintf (" 00000000000018.993.474,612793", "%' 030RF", x);
 
-  mpfr_set_ui (x, 50, MPFR_RNDN);
+#define T1 "000"
+#define T2 ".000"
+#define S1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1 T1
+#define S2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 T2 ","
+
+  mpfr_set_ui (x, 48, MPFR_RNDN);
   mpfr_exp10 (x, x, MPFR_RNDN);
-  check_sprintf ("100000000000000000000000000000000000000000000000000", "%.0Rf",
-                 x);
-  check_sprintf
-    ("100.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000,",
-     "%'#.0Rf", x);
-  check_sprintf
-    ("100.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000,0000",
-     "%'.4Rf", x);
+  check_sprintf ("1" S1, "%.0Rf", x);
+  check_sprintf ("1" S2, "%'#.0Rf", x);
+  check_sprintf ("1" S2 "0000", "%'.4Rf", x);
+  mpfr_mul_ui (x, x, 10, MPFR_RNDN);
+  check_sprintf ("10" S1, "%.0Rf", x);
+  check_sprintf ("10" S2, "%'#.0Rf", x);
+  check_sprintf ("10" S2 "0000", "%'.4Rf", x);
+  mpfr_mul_ui (x, x, 10, MPFR_RNDN);
+  check_sprintf ("100" S1, "%.0Rf", x);
+  check_sprintf ("100" S2, "%'#.0Rf", x);
+  check_sprintf ("100" S2 "0000", "%'.4Rf", x);
 
   mpfr_clear (x);
-  return 0;
+  mpfr_clear (y);
+
+  setlocale (LC_ALL, "C");
 }
+
+#endif  /* ... && MPFR_LCONV_DPTS */
 
 /* check concordance between mpfr_asprintf result with a regular mpfr float
    and with a regular double float */
@@ -890,8 +1002,8 @@ random_double (void)
       '+',
       ' ',
       '#',
-      '0', /* no ambiguity: first zeros are flag zero*/
-      '\''
+      '0', /* no ambiguity: first zeros are flag zero */
+      '\'' /* SUS extension */
     };
   /* no 'a': mpfr and glibc do not have the same semantic */
   char specifier[] =
@@ -935,7 +1047,7 @@ random_double (void)
         {
           y = DBL_RAND ();
         }
-#ifdef HAVE_DENORMS
+#ifdef HAVE_SUBNORM_DBL
       while (0);
 #else
       while (ABS(y) < DBL_MIN);
@@ -955,8 +1067,12 @@ random_double (void)
       *ptr_mpfr++ = *ptr++ = '%';
       /* random specifier 'e', 'f', 'g', 'E', 'F', or 'G' */
       spec = (int) (randlimb() % 6);
-      /* random flags, but no ' flag with %e */
+      /* random flags, but no ' flag with %e or with non-glibc */
+#if __MPFR_GLIBC(1,0)
       jmax = (spec == 0 || spec == 3) ? 5 : 6;
+#else
+      jmax = 5;
+#endif
       for (j = 0; j < jmax; j++)
         {
           if (randlimb() % 3 == 0)
@@ -986,7 +1102,7 @@ random_double (void)
          the sign of a zero exponent (the C99 rationale says: "The sign
          of a zero exponent in %e format is unspecified.  The committee
          knows of different implementations and choose not to require
-         implementations to document their behaviour in this case
+         implementations to document their behavior in this case
          (by making this be implementation defined behaviour).  Most
          implementations use a "+" sign, e.g., 1.2e+00; but there is at
          least one implementation that uses the sign of the unlimited
@@ -1141,8 +1257,8 @@ check_emax_aux (mpfr_exp_t e)
         printf ("(>LONG_MAX)\n");
       else
         printf ("%ld\n", (long) e);
-      printf ("Expected %s\n", s2);
-      printf ("Got      %s\n", s1);
+      printf ("Expected '%s'\n", s2);
+      printf ("Got      '%s'\n", s1);
       exit (1);
     }
 
@@ -1178,31 +1294,424 @@ check_emax (void)
   check_emax_aux (MPFR_EMAX_MAX);
 }
 
+static void
+check_emin_aux (mpfr_exp_t e)
+{
+  mpfr_t x;
+  char *s1, s2[256];
+  int i;
+  mpfr_exp_t emin;
+  mpz_t ee;
+
+  MPFR_ASSERTN (e >= LONG_MIN);
+  emin = mpfr_get_emin ();
+  set_emin (e);
+
+  mpfr_init2 (x, 16);
+  mpz_init (ee);
+
+  mpfr_setmin (x, e);
+  mpz_set_si (ee, e);
+  mpz_sub_ui (ee, ee, 1);
+
+  i = mpfr_asprintf (&s1, "%Ra", x);
+  MPFR_ASSERTN (i > 0);
+
+  gmp_snprintf (s2, 256, "0x1p%Zd", ee);
+
+  if (strcmp (s1, s2) != 0)
+    {
+      printf ("Error in check_emin_aux for emin = %ld\n", (long) e);
+      printf ("Expected %s\n", s2);
+      printf ("Got      %s\n", s1);
+      exit (1);
+    }
+
+  mpfr_free_str (s1);
+
+  i = mpfr_asprintf (&s1, "%Rb", x);
+  MPFR_ASSERTN (i > 0);
+
+  gmp_snprintf (s2, 256, "1p%Zd", ee);
+
+  if (strcmp (s1, s2) != 0)
+    {
+      printf ("Error in check_emin_aux for emin = %ld\n", (long) e);
+      printf ("Expected %s\n", s2);
+      printf ("Got      %s\n", s1);
+      exit (1);
+    }
+
+  mpfr_free_str (s1);
+
+  mpfr_clear (x);
+  mpz_clear (ee);
+  set_emin (emin);
+}
+
+static void
+check_emin (void)
+{
+  check_emin_aux (-15);
+  check_emin_aux (mpfr_get_emin ());
+  check_emin_aux (MPFR_EMIN_MIN);
+}
+
+static void
+test20161214 (void)
+{
+  mpfr_t x;
+  char buf[32];
+  const char s[] = "0x0.fffffffffffff8p+1024";
+  int r;
+
+  mpfr_init2 (x, 64);
+  mpfr_set_str (x, s, 16, MPFR_RNDN);
+  r = mpfr_snprintf (buf, 32, "%.*RDf", -2, x);
+  MPFR_ASSERTN(r == 316);
+  r = mpfr_snprintf (buf, 32, "%.*RDf", INT_MIN + 1, x);
+  MPFR_ASSERTN(r == 316);
+  r = mpfr_snprintf (buf, 32, "%.*RDf", INT_MIN, x);
+  MPFR_ASSERTN(r == 316);
+  mpfr_clear (x);
+}
+
+/* http://gforge.inria.fr/tracker/index.php?func=detail&aid=21056 */
+static void
+bug21056 (void)
+{
+  mpfr_t x;
+  const char s[] = "0x0.fffffffffffff8p+1024";
+  int ndigits, r;
+
+  mpfr_init2 (x, 64);
+
+  mpfr_set_str (x, s, 16, MPFR_RNDN);
+
+  ndigits = 1000;
+  r = mpfr_snprintf (0, 0, "%.*RDf", ndigits, x);
+  /* the return value should be ndigits + 310 */
+  MPFR_ASSERTN(r == ndigits + 310);
+
+  ndigits = INT_MAX - 310;
+  r = mpfr_snprintf (0, 0, "%.*RDf", ndigits, x);
+  MPFR_ASSERTN(r == INT_MAX);
+
+  ndigits = INT_MAX - 10;
+  r = mpfr_snprintf (0, 0, "%.*RDa", ndigits, x);
+  MPFR_ASSERTN(r == INT_MAX);
+
+  ndigits = INT_MAX - 7;
+  r = mpfr_snprintf (0, 0, "%.*RDe", ndigits, x);
+  MPFR_ASSERTN(r == INT_MAX);
+
+  ndigits = 1000;
+  r = mpfr_snprintf (0, 0, "%.*RDg", ndigits, x);
+  /* since trailing zeros are removed with %g, we get less digits */
+  MPFR_ASSERTN(r == 309);
+
+  ndigits = INT_MAX;
+  r = mpfr_snprintf (0, 0, "%.*RDg", ndigits, x);
+  /* since trailing zeros are removed with %g, we get less digits */
+  MPFR_ASSERTN(r == 309);
+
+  ndigits = INT_MAX - 1;
+  r = mpfr_snprintf (0, 0, "%#.*RDg", ndigits, x);
+  MPFR_ASSERTN(r == ndigits + 1);
+
+  mpfr_clear (x);
+}
+
+/* Fails for i = 5, i.e. t[i] = (size_t) UINT_MAX + 1,
+   with r11427 on 64-bit machines (4-byte int, 8-byte size_t).
+   On such machines, t[5] converted to int typically gives 0.
+   Note: the assumed behavior corresponds to the snprintf behavior
+   in ISO C, but this conflicts with POSIX:
+     https://sourceware.org/bugzilla/show_bug.cgi?id=14771#c2
+     http://austingroupbugs.net/view.php?id=761
+     http://austingroupbugs.net/view.php?id=1219
+     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87096
+   Fixed in r11429.
+*/
+static void
+snprintf_size (void)
+{
+  mpfr_t x;
+  char buf[12];
+  const char s[] = "17.00000000";
+  size_t t[] = { 11, 12, 64, INT_MAX, (size_t) INT_MAX + 1,
+                 (size_t) UINT_MAX + 1, (size_t) UINT_MAX + 2,
+                 (size_t) -1 };
+  int i, r;
+
+  mpfr_init2 (x, 64);
+  mpfr_set_ui (x, 17, MPFR_RNDN);
+
+  for (i = 0; i < sizeof (t) / sizeof (*t); i++)
+    {
+      memset (buf, 0, sizeof (buf));
+      /* r = snprintf (buf, t[i], "%.8f", 17.0); */
+      r = mpfr_snprintf (buf, t[i], "%.8Rf", x);
+      if (r != 11 || (t[i] > 11 && strcmp (buf, s) != 0))
+        {
+          printf ("Error in snprintf_size for i = %d:\n", i);
+          printf ("expected r = 11, \"%s\"\n", s);
+          printf ("got      r = %d, \"%s\"\n", r, buf);
+          exit (1);
+        }
+    }
+
+  mpfr_clear (x);
+}
+
+/* With r11516, n2 gets a random value for i = 0 only!
+   valgrind detects a problem for "nchar = buf.curr - buf.start;"
+   in the spec.spec == 'n' case. Indeed, there is no buffer when
+   size is 0. */
+static void
+percent_n (void)
+{
+  int err = 0, i, j;
+
+  for (i = 0; i < 24; i++)
+    for (j = 0; j < 3; j++)
+      {
+        volatile int n1, n2;
+        char buffer[64];
+
+        memset (buffer, 0, 64);
+        n2 = -17;
+        n1 = mpfr_snprintf (buffer, i % 8, "%d%n", 123, &n2);
+        if (n1 != 3 || n2 != 3)
+          {
+            printf ("Error 1 in percent_n: i = %d, n1 = %d, n2 = %d\n",
+                    i, n1, n2);
+            err = 1;
+          }
+      }
+
+  if (err)
+    exit (1);
+}
+
+struct clo
+{
+  const char *fmt;
+  int width, r, e;
+};
+
+static void
+check_length_overflow (void)
+{
+  mpfr_t x;
+  int i, r, e;
+  struct clo t[] = {
+    { "%Rg", 0, 1, 0 },
+    { "%*Rg", 1, 1, 0 },
+    { "%*Rg", -1, 1, 0 },
+    { "%5Rg", 0, 5, 0 },
+    { "%*Rg", 5, 5, 0 },
+    { "%*Rg", -5, 5, 0 },
+#if INT_MAX == 2147483647
+    { "%2147483647Rg", 0, 2147483647, 0 },
+    { "%2147483647Rg ", 0, -1, 1 },
+    { "%2147483648Rg", 0, -1, 1 },
+    { "%18446744073709551616Rg", 0, -1, 1 },
+    { "%*Rg", 2147483647, 2147483647, 0 },
+    { "%*Rg", -2147483647, 2147483647, 0 },
+# if INT_MIN < -INT_MAX
+    { "%*Rg", INT_MIN, -1, 1 },
+# endif
+#endif
+  };
+
+  mpfr_init2 (x, MPFR_PREC_MIN);
+  mpfr_set_ui (x, 0, MPFR_RNDN);
+
+  for (i = 0; i < numberof (t); i++)
+    {
+      errno = 0;
+      r = t[i].width == 0 ?
+        mpfr_snprintf (NULL, 0, t[i].fmt, x) :
+        mpfr_snprintf (NULL, 0, t[i].fmt, t[i].width, x);
+      e = errno;
+      if ((t[i].r < 0 ? r >= 0 : r != t[i].r)
+#ifdef EOVERFLOW
+          || (t[i].e && e != EOVERFLOW)
+#endif
+          )
+        {
+          printf ("Error in check_length_overflow for i=%d (%s %d)\n",
+                  i, t[i].fmt, t[i].width);
+          printf ("Expected r=%d, got r=%d\n", t[i].r, r);
+#ifdef EOVERFLOW
+          if (t[i].e && e != EOVERFLOW)
+            printf ("Expected errno=EOVERFLOW=%d, got errno=%d\n",
+                    EOVERFLOW, e);
+#endif
+          exit (1);
+        }
+    }
+
+  mpfr_clear (x);
+}
+
+#if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
+
+/* The following tests should be equivalent to those from test_locale()
+   in tprintf.c (remove the \n at the end of the test strings). */
+
+static void
+test_locale (void)
+{
+  const char * const tab_locale[] = {
+    "en_US",
+    "en_US.iso88591",
+    "en_US.iso885915",
+    "en_US.utf8"
+  };
+  int i;
+  mpfr_t x;
+  char v[] = "99999999999999999999999.5";
+
+  for (i = 0; i < numberof(tab_locale); i++)
+    {
+      char *s;
+
+      s = setlocale (LC_ALL, tab_locale[i]);
+
+      if (s != NULL && MPFR_THOUSANDS_SEPARATOR == ',')
+        break;
+    }
+
+  if (i == numberof(tab_locale))
+    {
+      if (getenv ("MPFR_CHECK_LOCALES") == NULL)
+        return;
+
+      fprintf (stderr, "Cannot find a locale with ',' thousands separator.\n"
+               "Please install one of the en_US based locales.\n");
+      exit (1);
+    }
+
+  mpfr_init2 (x, 113);
+  mpfr_set_ui (x, 10000, MPFR_RNDN);
+
+  check_sprintf ("(1) 10000=10,000 ", "(1) 10000=%'Rg ", x);
+  check_sprintf ("(2) 10000=10,000.000000 ", "(2) 10000=%'Rf ", x);
+
+  mpfr_set_ui (x, 1000, MPFR_RNDN);
+  check_sprintf ("(3) 1000=1,000.000000 ", "(3) 1000=%'Rf ", x);
+
+  for (i = 1; i <= sizeof (v) - 3; i++)
+    {
+      char buf[64];
+      int j;
+
+      strcpy (buf, "(4) 10^i=1");
+      for (j = i; j > 0; j--)
+        strcat (buf, ",0" + (j % 3 != 0));
+      strcat (buf, " ");
+      mpfr_set_str (x, v + sizeof (v) - 3 - i, 10, MPFR_RNDN);
+      check_sprintf (buf, "(4) 10^i=%'.0Rf ", x);
+    }
+
+#define N0 20
+
+  for (i = 1; i <= N0; i++)
+    {
+      char s[N0+4], buf[64];
+      int j;
+
+      s[0] = '1';
+      for (j = 1; j <= i; j++)
+        s[j] = '0';
+      s[i+1] = '\0';
+
+      strcpy (buf, "(5) 10^i=1");
+      for (j = i; j > 0; j--)
+        strcat (buf, ",0" + (j % 3 != 0));
+      strcat (buf, " ");
+
+      mpfr_set_str (x, s, 10, MPFR_RNDN);
+
+      check_sprintf (buf, "(5) 10^i=%'.0RNf ", x);
+      check_sprintf (buf, "(5) 10^i=%'.0RZf ", x);
+      check_sprintf (buf, "(5) 10^i=%'.0RUf ", x);
+      check_sprintf (buf, "(5) 10^i=%'.0RDf ", x);
+      check_sprintf (buf, "(5) 10^i=%'.0RYf ", x);
+
+      strcat (s + (i + 1), ".5");
+      check_sprintf (buf, "(5) 10^i=%'.0Rf ", x);
+    }
+
+  mpfr_set_str (x, "1000", 10, MPFR_RNDN);
+  check_sprintf ("00000001e+03", "%'012.3Rg", x);
+  check_sprintf ("00000001,000", "%'012.4Rg", x);
+  check_sprintf ("000000001,000", "%'013.4Rg", x);
+
+#ifdef PRINTF_GROUPFLAG
+  check_vsprintf ("+01,234,567  :", "%0+ -'13.10Pd:", (mpfr_prec_t) 1234567);
+#endif
+
+  mpfr_clear (x);
+}
+
+#else
+
+static void
+test_locale (void)
+{
+  if (getenv ("MPFR_CHECK_LOCALES") != NULL)
+    {
+      fprintf (stderr, "Cannot test locales.\n");
+      exit (1);
+    }
+}
+
+#endif
+
 int
 main (int argc, char **argv)
 {
-  char *locale;
+  int k;
 
   tests_start_mpfr ();
 
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
   /* currently, we just check with 'C' locale */
-  locale = setlocale (LC_ALL, "C");
+  setlocale (LC_ALL, "C");
 #endif
 
   bug20111102 ();
-  native_types ();
-  hexadecimal ();
-  binary ();
-  decimal ();
-  mixed ();
-  check_emax ();
 
-#if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
-  locale_da_DK ();
+  for (k = 0; k < 40; k++)
+    {
+      native_types ();
+      hexadecimal ();
+      binary ();
+      decimal ();
 
-  setlocale (LC_ALL, locale);
+#if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE) && MPFR_LCONV_DPTS
+      locale_da_DK ();
+#else
+      if (getenv ("MPFR_CHECK_LOCALES") != NULL)
+        {
+          fprintf (stderr, "Cannot test locales.\n");
+          exit (1);
+        }
 #endif
+    }
+
+  check_emax ();
+  check_emin ();
+  test20161214 ();
+  bug21056 ();
+  snprintf_size ();
+  percent_n ();
+  mixed ();
+  check_length_overflow ();
+  test_locale ();
 
   if (getenv ("MPFR_CHECK_LIBC_PRINTF"))
     {
@@ -1215,17 +1724,6 @@ main (int argc, char **argv)
   tests_end_mpfr ();
   return 0;
 }
-
-#else  /* MPFR_VERSION */
-
-int
-main (void)
-{
-  printf ("Warning! Test disabled for this MPFR version.\n");
-  return 0;
-}
-
-#endif  /* MPFR_VERSION */
 
 #else  /* HAVE_STDARG */
 
