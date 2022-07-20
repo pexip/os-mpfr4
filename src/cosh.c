@@ -1,7 +1,7 @@
 /* mpfr_cosh -- hyperbolic cosine
 
-Copyright 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Copyright 2001-2002, 2004-2020 Free Software Foundation, Inc.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -17,7 +17,7 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #define MPFR_NEED_LONGLONG_H
@@ -82,7 +82,7 @@ mpfr_cosh (mpfr_ptr y, mpfr_srcptr xt , mpfr_rnd_t rnd_mode)
     /* The optimal number of bits : see algorithms.tex */
     Nt = Ny + 3 + MPFR_INT_CEIL_LOG2 (Ny);
 
-    /* initialise of intermediary variables */
+    /* initialize of intermediary variables */
     MPFR_GROUP_INIT_2 (group, Nt, t, te);
 
     /* First computation of cosh */

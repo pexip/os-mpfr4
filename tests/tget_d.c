@@ -1,7 +1,7 @@
 /* Test file for mpfr_get_d
 
-Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Copyright 1999-2020 Free Software Foundation, Inc.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -17,18 +17,16 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <float.h>
 
 #include "mpfr-test.h"
 #include "ieee_floats.h"
 
 static int
-check_denorms (void)
+check_subnorm (void)
 {
   mpfr_rnd_t rnd_mode;
   mpfr_t x;
@@ -43,7 +41,7 @@ check_denorms (void)
       d = (double) k * DBL_MIN; /* k * 2^(-1022) */
       f = 1.0;
       mpfr_set_si (x, k, MPFR_RNDN);
-      mpfr_div_2exp (x, x, 1022, MPFR_RNDN); /* k * 2^(-1022) */
+      mpfr_div_2ui (x, x, 1022, MPFR_RNDN); /* k * 2^(-1022) */
       for (n = 0; n <= 58; n++)
         {
           d2 = d * f;
@@ -56,7 +54,7 @@ check_denorms (void)
               fail = 1;
             }
           f *= 0.5;
-          mpfr_div_2exp (x, x, 1, MPFR_RNDN);
+          mpfr_div_2ui (x, x, 1, MPFR_RNDN);
         }
     }
 
@@ -91,7 +89,7 @@ static void
 check_inf_nan (void)
 {
   /* only if nans and infs are available */
-#if _GMP_IEEE_FLOATS && !defined(MPFR_ERRDIVZERO)
+#if !defined(MPFR_ERRDIVZERO)
   mpfr_t  x;
   double  d;
 
@@ -99,17 +97,17 @@ check_inf_nan (void)
 
   mpfr_set_inf (x, 1);
   d = mpfr_get_d (x, MPFR_RNDZ);
-  ASSERT_ALWAYS (d > 0);
-  ASSERT_ALWAYS (DOUBLE_ISINF (d));
+  MPFR_ASSERTN (d > 0);
+  MPFR_ASSERTN (DOUBLE_ISINF (d));
 
   mpfr_set_inf (x, -1);
   d = mpfr_get_d (x, MPFR_RNDZ);
-  ASSERT_ALWAYS (d < 0);
-  ASSERT_ALWAYS (DOUBLE_ISINF (d));
+  MPFR_ASSERTN (d < 0);
+  MPFR_ASSERTN (DOUBLE_ISINF (d));
 
   mpfr_set_nan (x);
   d = mpfr_get_d (x, MPFR_RNDZ);
-  ASSERT_ALWAYS (DOUBLE_ISNAN (d));
+  MPFR_ASSERTN (DOUBLE_ISNAN (d));
 
   mpfr_clear (x);
 #endif
@@ -141,7 +139,7 @@ check_max (void)
   MPFR_ASSERTN(d == -DBL_MAX);
   d = mpfr_get_d (u, MPFR_RNDU);
   MPFR_ASSERTN(d == -DBL_MAX);
-#if _GMP_IEEE_FLOATS && !defined(MPFR_ERRDIVZERO)
+#if !defined(MPFR_ERRDIVZERO)
   d = mpfr_get_d (u, MPFR_RNDN);
   MPFR_ASSERTN(DOUBLE_ISINF(d) && d < 0.0);
   d = mpfr_get_d (u, MPFR_RNDD);
@@ -153,7 +151,7 @@ check_max (void)
   MPFR_ASSERTN(d == DBL_MAX);
   d = mpfr_get_d (u, MPFR_RNDD);
   MPFR_ASSERTN(d == DBL_MAX);
-#if _GMP_IEEE_FLOATS && !defined(MPFR_ERRDIVZERO)
+#if !defined(MPFR_ERRDIVZERO)
   d = mpfr_get_d (u, MPFR_RNDN);
   MPFR_ASSERTN(DOUBLE_ISINF(d) && d > 0.0);
   d = mpfr_get_d (u, MPFR_RNDU);
@@ -187,11 +185,11 @@ check_min(void)
 static void
 check_get_d_2exp_inf_nan (void)
 {
+#if !defined(MPFR_ERRDIVZERO)
+
   double var_d;
   long exp;
   mpfr_t var;
-
-#if !defined(MPFR_ERRDIVZERO)
 
   mpfr_init2 (var, MPFR_PREC_MIN);
 
@@ -279,7 +277,7 @@ main (void)
   printf ("DBL_MAX_EXP  = %ld\n", (long) DBL_MAX_EXP);
 #endif
 
-  if (check_denorms ())
+  if (check_subnorm ())
     exit (1);
 
   check_inf_nan ();
