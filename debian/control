@@ -6,7 +6,7 @@ Build-Depends-Indep: texlive-latex-base
 Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
 Homepage: https://www.mpfr.org/
-Standards-Version: 4.5.0
+Standards-Version: 4.6.2
 
 Package: libmpfr6
 Section: libs
@@ -45,7 +45,7 @@ Package: libmpfr-doc
 Section: doc
 Architecture: all
 Multi-Arch: foreign
-Depends: dpkg (>= 1.15.4) | install-info, ${misc:Depends}
+Depends: ${misc:Depends}
 Description: multiple precision floating-point computation documentation
  This package provides documentation for the multiple-precision floating-point
  computation library MPFR.
