@@ -1,3 +1,32 @@
+mpfr4 (4.2.0-1) unstable; urgency=medium
+
+  * New upstream version.
+  * Update symbols file.
+  * Bump standards version.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 14 Jan 2023 18:17:26 +0100
+
+mpfr4 (4.1.1-3) unstable; urgency=medium
+
+  * Apply upstream patch01. Closes: #1027284.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 31 Dec 2022 12:05:00 +0100
+
+mpfr4 (4.1.1-2) unstable; urgency=medium
+
+  * Update symbols file for powerpc, ppc64, ppc64el.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 31 Dec 2022 10:12:14 +0100
+
+mpfr4 (4.1.1-1) unstable; urgency=medium
+
+  * New upstream version.
+  * Bump standards version.
+  * libmpfr-doc: Remove dependency on install-info. Closes: #1013823.
+  * Update symbols file for musl. Closes: #988008, #988760.
+
+ -- Matthias Klose <doko@debian.org>  Mon, 26 Dec 2022 11:56:31 +0100
+
 mpfr4 (4.1.0-3pexip2) pexip-bullseye; urgency=medium
 
   * Bullseye rebuild for ARM64 inclusion

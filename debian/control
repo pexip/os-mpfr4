@@ -7,7 +7,7 @@ Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.org>
 XSBC-Pexip-Original-Uploaders: Matthias Klose <doko@debian.org>
 Homepage: https://www.mpfr.org/
-Standards-Version: 4.5.0
+Standards-Version: 4.6.2
 XS-Pexip-Upstream: http://deb.debian.org/debian/ bookworm
 
 Package: libmpfr6
@@ -47,7 +47,7 @@ Package: libmpfr-doc
 Section: doc
 Architecture: all
 Multi-Arch: foreign
-Depends: dpkg (>= 1.15.4) | install-info, ${misc:Depends}
+Depends: ${misc:Depends}
 Description: multiple precision floating-point computation documentation
  This package provides documentation for the multiple-precision floating-point
  computation library MPFR.
