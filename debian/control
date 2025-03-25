@@ -1,12 +1,12 @@
 Source: mpfr4
 Section: math
 Priority: optional
-Build-Depends: debhelper (>= 10), libgmp-dev, autoconf-archive, texinfo
+Build-Depends: debhelper (>= 11), libgmp-dev, autoconf-archive, texinfo
 Build-Depends-Indep: texlive-latex-base
 Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
 Homepage: https://www.mpfr.org/
-Standards-Version: 4.6.2
+Standards-Version: 4.7.2
 
 Package: libmpfr6
 Section: libs

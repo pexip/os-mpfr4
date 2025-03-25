@@ -1,7 +1,7 @@
 /* Sum -- efficiently sum a list of floating-point numbers
 
-Copyright 2014-2023 Free Software Foundation, Inc.
-Contributed by the AriC and Caramba projects, INRIA.
+Copyright 2014-2025 Free Software Foundation, Inc.
+Contributed by the Pascaline and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -16,9 +16,8 @@ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+along with the GNU MPFR Library; see the file COPYING.LESSER.
+If not, see <https://www.gnu.org/licenses/>. */
 
 #define MPFR_NEED_LONGLONG_H
 #include "mpfr-impl.h"
@@ -543,7 +542,7 @@ sum_aux (mpfr_ptr sum, const mpfr_ptr *x, unsigned long n, mpfr_rnd_t rnd,
   MPFR_LOG_FUNC
     (("n=%lu rnd=%d maxexp=%" MPFR_EXP_FSPEC "d rn=%lu",
       n, rnd, (mpfr_eexp_t) maxexp, rn),
-     ("sum[%Pu]=%.*Rg", mpfr_get_prec (sum), mpfr_log_prec, sum));
+     ("sum[%Pd]=%.*Rg", mpfr_get_prec (sum), mpfr_log_prec, sum));
 
   MPFR_ASSERTD (rn >= 3 && rn <= n);
 
@@ -1268,7 +1267,7 @@ mpfr_sum (mpfr_ptr sum, const mpfr_ptr *x, unsigned long n, mpfr_rnd_t rnd)
 {
   MPFR_LOG_FUNC
     (("n=%lu rnd=%d", n, rnd),
-     ("sum[%Pu]=%.*Rg", mpfr_get_prec (sum), mpfr_log_prec, sum));
+     ("sum[%Pd]=%.*Rg", mpfr_get_prec (sum), mpfr_log_prec, sum));
 
   if (MPFR_UNLIKELY (n <= 2))
     {
