@@ -107,6 +107,7 @@ build: build-indep build-arch
 
 clean:
 	rm -f doc/texinfo.tex
+	rm -f doc/mpfr.info
 	dh_autoreconf_clean
 	rm -rf stamps
 	dh_testdir
@@ -151,6 +152,7 @@ binary-arch: build install
 	dh_installdocs -a -A BUGS NEWS README TODO AUTHORS
 	dh_installexamples -a
 	dh_installinfo -a
+	dh_dwz -a
 	dh_strip -a
 	dh_link -a
 	dh_compress -a
