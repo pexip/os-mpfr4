@@ -1,7 +1,7 @@
 /* mpfr_exp -- exponential of a floating-point number
 
-Copyright 1999-2023 Free Software Foundation, Inc.
-Contributed by the AriC and Caramba projects, INRIA.
+Copyright 1999-2025 Free Software Foundation, Inc.
+Contributed by the Pascaline and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -16,9 +16,8 @@ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+along with the GNU MPFR Library; see the file COPYING.LESSER.
+If not, see <https://www.gnu.org/licenses/>. */
 
 #include "mpfr-impl.h"
 
@@ -41,8 +40,8 @@ mpfr_exp (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t rnd_mode)
   MPFR_SAVE_EXPO_DECL (expo);
 
   MPFR_LOG_FUNC
-    (("x[%Pu]=%.*Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
-     ("y[%Pu]=%.*Rg inexact=%d",
+    (("x[%Pd]=%.*Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
+     ("y[%Pd]=%.*Rg inexact=%d",
       mpfr_get_prec (y), mpfr_log_prec, y, inexact));
 
   if (MPFR_UNLIKELY( MPFR_IS_SINGULAR(x) ))

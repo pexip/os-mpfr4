@@ -1,7 +1,7 @@
 /* MPFR internal header related to thread-local variables.
 
-Copyright 2005-2023 Free Software Foundation, Inc.
-Contributed by the AriC and Caramba projects, INRIA.
+Copyright 2005-2025 Free Software Foundation, Inc.
+Contributed by the Pascaline and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -16,9 +16,8 @@ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+along with the GNU MPFR Library; see the file COPYING.LESSER.
+If not, see <https://www.gnu.org/licenses/>. */
 
 #ifndef __MPFR_THREAD_H__
 #define __MPFR_THREAD_H__
@@ -64,10 +63,13 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_LOCK_DECL(_lock)                   \
   mtx_t _lock;
 
-#define MPFR_LOCK_C(E)                          \
-  do {                                          \
-    if ((E) != thrd_success)                    \
-      abort ();                                 \
+#define MPFR_LOCK_C(E)                                  \
+  do {                                                  \
+    if ((E) != thrd_success)                            \
+      {                                                 \
+        fprintf (stderr, "MPFR lock failure\n");        \
+        abort ();                                       \
+      }                                                 \
   } while (0)
 
 #define MPFR_LOCK_INIT(_lock)    MPFR_LOCK_C(mtx_init(&(_lock), mtx_plain))
@@ -107,10 +109,13 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_LOCK_DECL(_lock)                   \
   pthread_rwlock_t _lock;
 
-#define MPFR_LOCK_C(E)                          \
-  do {                                          \
-    if ((E) != 0)                               \
-      abort ();                                 \
+#define MPFR_LOCK_C(E)                                  \
+  do {                                                  \
+    if ((E) != 0)                                       \
+      {                                                 \
+        fprintf (stderr, "MPFR lock failure\n");        \
+        abort ();                                       \
+      }                                                 \
   } while (0)
 
 #define MPFR_LOCK_INIT(_lock) MPFR_LOCK_C(pthread_rwlock_init(&(_lock), NULL))

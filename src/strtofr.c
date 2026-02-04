@@ -1,7 +1,7 @@
 /* mpfr_strtofr -- set a floating-point number from a string
 
-Copyright 2004-2023 Free Software Foundation, Inc.
-Contributed by the AriC and Caramba projects, INRIA.
+Copyright 2004-2025 Free Software Foundation, Inc.
+Contributed by the Pascaline and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -16,9 +16,8 @@ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+along with the GNU MPFR Library; see the file COPYING.LESSER.
+If not, see <https://www.gnu.org/licenses/>. */
 
 #include <ctype.h>  /* For isspace */
 
@@ -242,7 +241,10 @@ parse_string (mpfr_ptr x, struct parsed_string *pstr,
   pstr->mantissa = NULL;
 
   /* Optional leading whitespace */
-  while (isspace((unsigned char) *str)) str++;
+  /* For non-"C" locales, the ISO C standard allows isspace(0) to
+     return true. So we need to stop explicitly on '\0'. */
+  while (*str != '\0' && isspace ((unsigned char) *str))
+    str++;
 
   /* An optional sign `+' or `-' */
   pstr->negative = (*str == '-');
@@ -425,7 +427,8 @@ parse_string (mpfr_ptr x, struct parsed_string *pstr,
   /* Remove 0's at the beginning and end of mantissa[0..prec-1] */
   mant = pstr->mantissa;
   for ( ; (pstr->prec > 0) && (*mant == 0) ; mant++, pstr->prec--)
-    pstr->exp_base--;
+    if (MPFR_LIKELY (pstr->exp_base != MPFR_EXP_MIN))
+      pstr->exp_base--;
   for ( ; (pstr->prec > 0) && (mant[pstr->prec - 1] == 0); pstr->prec--);
   pstr->mant = mant;
 
@@ -738,7 +741,9 @@ parsed_string_to_mpfr (mpfr_ptr x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           MPN_ZERO (y0, ysize);
 
           /* pstr_size - pstr->exp_base can overflow */
-          MPFR_SADD_OVERFLOW (exp_z, (mpfr_exp_t) pstr_size, -pstr->exp_base,
+          exp_z = pstr->exp_base == MPFR_EXP_MIN ?
+            MPFR_EXP_MAX : -pstr->exp_base;  /* avoid integer overflow */
+          MPFR_SADD_OVERFLOW (exp_z, (mpfr_exp_t) pstr_size, exp_z,
                               mpfr_exp_t, mpfr_uexp_t,
                               MPFR_EXP_MIN, MPFR_EXP_MAX,
                               goto underflow, goto overflow);
@@ -862,7 +867,7 @@ parsed_string_to_mpfr (mpfr_ptr x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           err = 0;
         }
 
-      MPFR_LOG_MSG (("exact = %d, err = %d, precx = %Pu\n",
+      MPFR_LOG_MSG (("exact = %d, err = %d, precx = %Pd\n",
                      exact, err, precx));
 
       /* at this point, result is an approximation rounded toward zero
