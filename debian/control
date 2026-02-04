@@ -8,7 +8,7 @@ XSBC-Pexip-Original-Maintainer: Debian GCC Maintainers <debian-gcc@lists.debian.
 XSBC-Pexip-Original-Uploaders: Matthias Klose <doko@debian.org>
 Homepage: https://www.mpfr.org/
 Standards-Version: 4.6.2
-XS-Pexip-Upstream: http://deb.debian.org/debian/ bookworm
+XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
 
 Package: libmpfr6
 Section: libs
